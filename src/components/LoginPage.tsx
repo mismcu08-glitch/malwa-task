@@ -12,34 +12,48 @@ export const LoginPage: React.FC<LoginPageProps> = ({ users, onLogin }) => {
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [rememberMe, setRememberMe] = useState<boolean>(true);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
     const trimmedEmail = email.trim().toLowerCase();
+    const trimmedPassword = password.trim();
+
+    if (!trimmedEmail || !trimmedPassword) {
+      setErrorMessage('Please enter both corporate email and password.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Validate active account against database
     const matchedUser = users.find(
       (u) => u.Email.toLowerCase() === trimmedEmail && u.Status === 'Active'
     );
 
     if (!matchedUser) {
-      setErrorMessage('No active employee account found with this email address.');
+      setErrorMessage('Invalid credentials. No active employee account found with this email.');
+      setIsSubmitting(false);
       return;
     }
 
     const expectedPassword =
       matchedUser.Password || (matchedUser.Role === 'Admin' ? 'admin' : 'user123');
-    if (password !== expectedPassword) {
-      setErrorMessage('Incorrect password. Please verify your credentials or contact administrator.');
+    if (trimmedPassword !== expectedPassword) {
+      setErrorMessage('Invalid credentials. Incorrect password.');
+      setIsSubmitting(false);
       return;
     }
 
+    // Success
+    setIsSubmitting(false);
     onLogin(matchedUser);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-indigo-50/30 to-slate-100 flex flex-col justify-center items-center p-4 sm:p-6 selection:bg-[#6C70FF] selection:text-white">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-indigo-50/20 to-slate-100 flex flex-col justify-center items-center p-4 sm:p-6 selection:bg-[#6C70FF] selection:text-white">
       <div className="max-w-md w-full relative z-10 space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
@@ -59,10 +73,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ users, onLogin }) => {
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div className="flex items-center space-x-2 text-slate-800">
               <ShieldCheck className="w-4 h-4 text-[#6C70FF]" />
-              <span className="text-xs font-bold uppercase tracking-wider">Employee Sign-In</span>
+              <span className="text-xs font-bold uppercase tracking-wider">Secure Employee Login</span>
             </div>
             <span className="text-[10px] font-mono text-[#6C70FF] bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full font-bold">
-              Secure RBAC
+              Protected
             </span>
           </div>
 
@@ -73,11 +87,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ users, onLogin }) => {
             </div>
           )}
 
-          <form onSubmit={handleLoginSubmit} className="space-y-4">
+          <form onSubmit={handleLoginSubmit} className="space-y-4" autoComplete="off">
             {/* Email Field */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-800">
-                Corporate Email
+                Corporate Email Address
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -85,8 +99,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ users, onLogin }) => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@malwaconcrete.com"
+                  placeholder="Enter your corporate email"
                   required
+                  autoComplete="off"
                   className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-[#6C70FF] rounded-2xl py-3 pl-10 pr-3 text-xs text-slate-900 placeholder-slate-400 transition outline-none min-h-[46px]"
                 />
               </div>
@@ -94,17 +109,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ users, onLogin }) => {
 
             {/* Password Field */}
             <div className="space-y-1.5">
-              <div className="flex justify-between items-center">
-                <label className="block text-xs font-bold text-slate-800">Password</label>
-              </div>
+              <label className="block text-xs font-bold text-slate-800">Password</label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="Enter your password"
                   required
+                  autoComplete="new-password"
                   className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-[#6C70FF] rounded-2xl py-3 pl-10 pr-10 text-xs text-slate-900 placeholder-slate-400 transition outline-none min-h-[46px]"
                 />
                 <button
@@ -118,34 +132,23 @@ export const LoginPage: React.FC<LoginPageProps> = ({ users, onLogin }) => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-xs text-slate-500 py-1">
-              <label className="flex items-center space-x-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="rounded border-slate-300 text-[#6C70FF] focus:ring-[#6C70FF] w-4 h-4"
-                />
-                <span className="text-[11px] font-medium text-slate-600">Keep me logged in</span>
-              </label>
-            </div>
-
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-[#6C70FF] hover:bg-[#5B5FF5] active:scale-[0.99] text-white font-bold text-xs py-3.5 rounded-2xl shadow-[0_4px_16px_rgba(108,112,255,0.35)] transition flex items-center justify-center space-x-2 cursor-pointer min-h-[46px]"
+              disabled={isSubmitting}
+              className="w-full mt-2 bg-[#6C70FF] hover:bg-[#5B5FF5] active:scale-[0.99] text-white font-bold text-xs py-3.5 rounded-2xl shadow-[0_4px_16px_rgba(108,112,255,0.35)] transition flex items-center justify-center space-x-2 cursor-pointer min-h-[46px] disabled:opacity-50"
             >
               <KeyRound className="w-4 h-4" />
-              <span>Log In to Operations Portal</span>
+              <span>{isSubmitting ? 'Authenticating...' : 'Sign In Securely'}</span>
             </button>
           </form>
         </div>
 
-        {/* Footer info */}
+        {/* Security Notice */}
         <div className="text-center text-[11px] text-slate-400 space-y-1">
           <p>© 2026 Malwa Concrete Udyog Pvt. Ltd. All rights reserved.</p>
           <p className="text-[10px]">
-            Cloud synchronized across mobile & desktop terminals.
+            Confidential operations database. Unauthorized access is prohibited.
           </p>
         </div>
       </div>

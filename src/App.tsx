@@ -44,7 +44,17 @@ import { isModuleAllowed, MODULE_IDS, getModuleInfo } from './utils/rbac';
 import { createNextRecurringInstance, checkAndSyncRecurringRoutines } from './utils/recurringTaskManager';
 
 export default function App() {
-  // Helper to deduplicate users by unique User_ID and Email
+  const DEMO_EMAILS_TO_REMOVE = new Set([
+    'chetan.naroliya@malwaconcrete.com',
+    'arun.gour@malwaconcrete.com',
+    'rahul.sharma@malwaconcrete.com',
+    'sunil.verma@malwaconcrete.com',
+    'vikram.patel@malwaconcrete.com',
+  ]);
+
+  const DEMO_TASK_IDS = new Set(['TSK-301', 'TSK-302', 'TSK-303', 'TSK-304']);
+
+  // Helper to deduplicate users by unique User_ID and Email & remove old demo accounts
   const deduplicateUsers = (userList: User[]): User[] => {
     if (!Array.isArray(userList)) return INITIAL_USERS;
     const unique: User[] = [];
@@ -54,6 +64,7 @@ export default function App() {
       if (!u || !u.User_ID || !u.Email) continue;
       const idKey = String(u.User_ID).trim();
       const emailKey = String(u.Email).toLowerCase().trim();
+      if (DEMO_EMAILS_TO_REMOVE.has(emailKey)) continue; // Purge demo accounts
       if (!seenIds.has(idKey) && !seenEmails.has(emailKey)) {
         seenIds.add(idKey);
         seenEmails.add(emailKey);
@@ -63,7 +74,7 @@ export default function App() {
     return unique.length > 0 ? unique : INITIAL_USERS;
   };
 
-  // State: Users & Authentication
+  // State: Users & Authentication (starts clean with only Amit Meena)
   const [users, setUsers] = useState<User[]>(() => {
     try {
       const saved = localStorage.getItem('malwa_fms_users');
@@ -74,20 +85,19 @@ export default function App() {
     }
   });
 
-  const [activeUserEmail, setActiveUserEmail] = useState<string | null>(() => {
-    try {
-      const saved = localStorage.getItem('malwa_fms_active_user_email');
-      return saved || 'amit.meena@malwaconcrete.com';
-    } catch {
-      return 'amit.meena@malwaconcrete.com';
-    }
-  });
+  // Always show Login Page on initial app open
+  const [activeUserEmail, setActiveUserEmail] = useState<string | null>(null);
 
-  // State: Tasks
+  // State: Tasks (purges demo tasks)
   const [tasks, setTasks] = useState<TaskItem[]>(() => {
     try {
       const saved = localStorage.getItem('malwa_fms_tasks');
-      return saved ? JSON.parse(saved) : INITIAL_TASKS;
+      if (saved) {
+        const parsed: TaskItem[] = JSON.parse(saved);
+        const filtered = parsed.filter((t) => !DEMO_TASK_IDS.has(t.Task_ID));
+        return filtered;
+      }
+      return INITIAL_TASKS;
     } catch {
       return INITIAL_TASKS;
     }
@@ -122,10 +132,10 @@ export default function App() {
   const [taskToEditForDelegate, setTaskToEditForDelegate] = useState<TaskItem | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<OnlinePresenceUser[]>([]);
 
-  // Find active user object
+  // Find active user object (returns null when not logged in -> displays LoginPage)
   const activeUser = useMemo(() => {
     if (!activeUserEmail) return null;
-    return users.find((u) => u.Email.toLowerCase() === activeUserEmail.toLowerCase()) || users[0];
+    return users.find((u) => u.Email.toLowerCase() === activeUserEmail.toLowerCase()) || null;
   }, [users, activeUserEmail]);
 
   // Persist Users
