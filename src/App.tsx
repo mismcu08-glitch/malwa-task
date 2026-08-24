@@ -85,8 +85,15 @@ export default function App() {
     }
   });
 
-  // Always show Login Page on initial app open
-  const [activeUserEmail, setActiveUserEmail] = useState<string | null>(null);
+  // State: Authentication - Always requires login on app startup (uses sessionStorage for active tab session)
+  const [activeUserEmail, setActiveUserEmail] = useState<string | null>(() => {
+    try {
+      const sessionUser = sessionStorage.getItem('malwa_fms_active_user_email');
+      return sessionUser || null;
+    } catch {
+      return null;
+    }
+  });
 
   // State: Tasks (purges demo tasks)
   const [tasks, setTasks] = useState<TaskItem[]>(() => {
@@ -285,7 +292,7 @@ export default function App() {
   const handleLogin = (user: User) => {
     setActiveUserEmail(user.Email);
     try {
-      localStorage.setItem('malwa_fms_active_user_email', user.Email);
+      sessionStorage.setItem('malwa_fms_active_user_email', user.Email);
     } catch {}
     realtimeSync.init(user);
     pushNotificationService.triggerPushNotification(
@@ -299,6 +306,8 @@ export default function App() {
   const handleLogout = () => {
     setActiveUserEmail(null);
     try {
+      sessionStorage.removeItem('malwa_fms_active_user_email');
+      sessionStorage.removeItem('malwa_auth_token');
       localStorage.removeItem('malwa_fms_active_user_email');
     } catch {}
   };
