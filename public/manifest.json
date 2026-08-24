@@ -8,6 +8,7 @@
   "display": "standalone",
   "display_override": [
     "window-controls-overlay",
+    "tabbed",
     "standalone",
     "minimal-ui",
     "browser"
@@ -24,7 +25,17 @@
   ],
   "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
   "prefer_related_applications": false,
-  "related_applications": [],
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://malwa-task.vercel.app/manifest.json"
+    }
+  ],
+  "scope_extensions": [
+    {
+      "origin": "https://malwa-task.vercel.app"
+    }
+  ],
   "icons": [
     {
       "src": "/icon.svg",
@@ -127,11 +138,6 @@
   "edge_side_panel": {
     "preferred_width": 480
   },
-  "scope_extensions": [
-    {
-      "origin": "https://malwa-task.vercel.app"
-    }
-  ],
   "widgets": [
     {
       "name": "Malwa Task Summary",
