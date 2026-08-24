@@ -1,21 +1,71 @@
 {
+  "id": "malwa-concrete-fms-portal",
   "name": "Malwa Concrete FMS - Task Hub",
   "short_name": "Malwa FMS",
-  "description": "Factory Operations & Task Delegation Portal (FMS)",
+  "description": "Factory Operations, SLA Tracking & Real-Time Task Delegation Portal for Malwa Concrete Udyog Pvt. Ltd.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "any",
+  "background_color": "#0b2533",
   "theme_color": "#0b2533",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": [
+    "business",
+    "productivity",
+    "utilities"
+  ],
+  "prefer_related_applications": false,
   "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Task Hub",
+      "short_name": "Tasks",
+      "description": "View active task list and SLA deadlines",
+      "url": "/?view=tasks",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Delegate Task",
+      "short_name": "Delegate",
+      "description": "Assign a new factory task or routine",
+      "url": "/?view=delegate",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }

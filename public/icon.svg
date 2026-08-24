@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b2533"/>
+      <stop offset="100%" stop-color="#1e3a8a"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+  </defs>
+  <!-- Background Rounded -->
+  <rect width="512" height="512" rx="108" fill="url(#bg)"/>
+  
+  <!-- Outer Ring / Grid Accent -->
+  <rect x="76" y="76" width="360" height="360" rx="36" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="8"/>
+  
+  <!-- Factory / Concrete Block Structure -->
+  <path d="M128 352V200L224 256V352H128Z" fill="#ffffff" fill-opacity="0.25"/>
+  <path d="M224 352V256L320 200V352H224Z" fill="#ffffff" fill-opacity="0.38"/>
+  <path d="M224 160L320 200L224 256L128 200L224 160Z" fill="url(#accent)"/>
+  
+  <!-- Checkmark / SLA Shield Accent -->
+  <circle cx="360" cy="340" r="64" fill="#22c55e" stroke="#0b2533" stroke-width="8"/>
+  <path d="M336 340L352 356L384 324" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
