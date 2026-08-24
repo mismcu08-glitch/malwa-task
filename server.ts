@@ -268,6 +268,10 @@ async function startServer() {
     });
   });
 
+  // Serve static assets from public folder with correct MIME types
+  const publicPath = path.join(process.cwd(), 'public');
+  app.use(express.static(publicPath));
+
   // Vite middleware for development vs static build in production
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
