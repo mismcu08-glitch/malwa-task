@@ -1,0 +1,6 @@
+{
+  "name": "Task Delegation & Routine Task Hub",
+  "description": "Collaborative real-time task management and routine delegation hub with live multi-device synchronization, deadline push notifications, interactive checklist workflows, and SLA monitors.",
+  "requestFramePermissions": ["notifications"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
