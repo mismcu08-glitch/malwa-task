@@ -24,6 +24,7 @@ import { isModuleAllowed, MODULE_IDS } from '../../utils/rbac';
 import { pushNotificationService } from '../../services/pushNotificationService';
 import { realtimeSync } from '../../services/realtimeSync';
 import { googleSheetSync } from '../../services/googleSheetSync';
+import { saveCloudTask } from '../../services/firebaseClient';
 
 interface MobileTaskDashboardProps {
   tasks: TaskItem[];
@@ -120,6 +121,7 @@ export const MobileTaskDashboard: React.FC<MobileTaskDashboardProps> = ({
 
     setTasks((prev) => prev.map((t) => (t.Task_ID === targetTask.Task_ID ? completedTask : t)));
 
+    saveCloudTask(completedTask);
     realtimeSync.broadcastTaskMutation('COMPLETE', completedTask, activeUser);
     googleSheetSync.syncRecord('TASK_HUB', completedTask, activeUser.Email, 'ARCHIVE_COMPLETED');
 

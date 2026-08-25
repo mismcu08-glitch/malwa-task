@@ -18,6 +18,7 @@ import confetti from 'canvas-confetti';
 import { googleSheetSync } from '../services/googleSheetSync';
 import { realtimeSync } from '../services/realtimeSync';
 import { pushNotificationService } from '../services/pushNotificationService';
+import { saveCloudTask } from '../services/firebaseClient';
 
 interface DelegateTaskViewProps {
   tasks: TaskItem[];
@@ -167,6 +168,7 @@ export const DelegateTaskView: React.FC<DelegateTaskViewProps> = ({
 
           realtimeSync.broadcastTaskMutation('UPDATE', updated, activeUser);
           googleSheetSync.syncRecord('TASK_HUB', updated, activeUser.Email, 'UPSERT_RECORD');
+          saveCloudTask(updated);
           return updated;
         }
         return t;
@@ -206,7 +208,8 @@ export const DelegateTaskView: React.FC<DelegateTaskViewProps> = ({
       const updated = [newTask, ...tasks];
       setTasks(updated);
 
-      // Realtime broadcast & Google Sheets sync
+      // Realtime broadcast & Cloud sync & Google Sheets sync
+      saveCloudTask(newTask);
       realtimeSync.broadcastTaskMutation('CREATE', newTask, activeUser);
       googleSheetSync.syncRecord('TASK_HUB', newTask, activeUser.Email, 'UPSERT_RECORD');
 

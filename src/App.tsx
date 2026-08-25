@@ -42,6 +42,16 @@ import { pushNotificationService } from './services/pushNotificationService';
 import { googleSheetSync } from './services/googleSheetSync';
 import { isModuleAllowed, MODULE_IDS, getModuleInfo } from './utils/rbac';
 import { createNextRecurringInstance, checkAndSyncRecurringRoutines } from './utils/recurringTaskManager';
+import {
+  saveCloudTask,
+  deleteCloudTask,
+  subscribeCloudTasks,
+  saveCloudUser,
+  deleteCloudUser,
+  subscribeCloudUsers,
+  saveCloudStageConfig,
+  subscribeCloudStageConfig,
+} from './services/firebaseClient';
 
 export default function App() {
   const DEMO_EMAILS_TO_REMOVE = new Set([
@@ -85,11 +95,13 @@ export default function App() {
     }
   });
 
-  // State: Authentication - Always requires login on app startup (uses sessionStorage for active tab session)
+  // State: Authentication - Uses persistent local storage & session storage for active session
   const [activeUserEmail, setActiveUserEmail] = useState<string | null>(() => {
     try {
       const sessionUser = sessionStorage.getItem('malwa_fms_active_user_email');
-      return sessionUser || null;
+      if (sessionUser) return sessionUser;
+      const localUser = localStorage.getItem('malwa_fms_active_user_email');
+      return localUser || null;
     } catch {
       return null;
     }
@@ -171,6 +183,36 @@ export default function App() {
       console.warn('Error saving stage config', e);
     }
   }, [stageConfig]);
+
+  // Real-time Cloud Sync with Firebase Firestore across ALL devices (Mobile + Desktop)
+  useEffect(() => {
+    // 1. Live Tasks listener
+    const unsubTasks = subscribeCloudTasks((cloudTasks) => {
+      if (cloudTasks && Array.isArray(cloudTasks)) {
+        setTasks(cloudTasks);
+      }
+    });
+
+    // 2. Live Users / Employees listener
+    const unsubUsers = subscribeCloudUsers((cloudUsers) => {
+      if (cloudUsers && Array.isArray(cloudUsers) && cloudUsers.length > 0) {
+        setUsers(deduplicateUsers(cloudUsers));
+      }
+    });
+
+    // 3. Live Stage Configuration listener
+    const unsubStage = subscribeCloudStageConfig((cloudStage) => {
+      if (cloudStage) {
+        setStageConfig(cloudStage);
+      }
+    });
+
+    return () => {
+      unsubTasks();
+      unsubUsers();
+      unsubStage();
+    };
+  }, []);
 
   // Initialize Real-Time WebSocket & Bus Listeners
   useEffect(() => {
@@ -293,6 +335,7 @@ export default function App() {
     setActiveUserEmail(user.Email);
     try {
       sessionStorage.setItem('malwa_fms_active_user_email', user.Email);
+      localStorage.setItem('malwa_fms_active_user_email', user.Email);
     } catch {}
     realtimeSync.init(user);
     pushNotificationService.triggerPushNotification(
@@ -327,12 +370,14 @@ export default function App() {
     const nextTasks = tasks.map((t) => (t.Task_ID === updatedTask.Task_ID ? updatedTask : t));
     setTasks(nextTasks);
     setSelectedTaskForDetails(updatedTask);
+    saveCloudTask(updatedTask);
   };
 
   const handleDeleteTask = (taskId: string) => {
     const taskToDelete = tasks.find((t) => t.Task_ID === taskId);
     const remaining = tasks.filter((t) => t.Task_ID !== taskId);
     setTasks(remaining);
+    deleteCloudTask(taskId);
     if (taskToDelete && activeUser) {
       realtimeSync.broadcastTaskMutation('DELETE', taskToDelete, activeUser);
       googleSheetSync.syncRecord('TASK_HUB', taskToDelete, activeUser.Email, 'DELETE_RECORD');
@@ -366,6 +411,7 @@ export default function App() {
       const updatedList = users.map((u) => (u.User_ID === updatedUser.User_ID ? updatedUser : u));
       localStorage.setItem('malwa_fms_users', JSON.stringify(updatedList));
     } catch {}
+    saveCloudUser(updatedUser);
     dataSyncBus.broadcast('USER_UPDATED', { updatedUser });
   };
 

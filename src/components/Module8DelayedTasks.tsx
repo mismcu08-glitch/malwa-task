@@ -16,6 +16,7 @@ import {
 import confetti from 'canvas-confetti';
 import { googleSheetSync } from '../services/googleSheetSync';
 import { realtimeSync } from '../services/realtimeSync';
+import { saveCloudTask } from '../services/firebaseClient';
 
 interface Module8DelayedTasksProps {
   tasks: TaskItem[];
@@ -61,6 +62,7 @@ export const Module8DelayedTasks: React.FC<Module8DelayedTasksProps> = ({
           Completed_At: new Date().toLocaleString(),
           Subtasks: t.Subtasks.map((st) => ({ ...st, completed: true })),
         };
+        saveCloudTask(resolved);
         realtimeSync.broadcastTaskMutation('COMPLETE', resolved, activeUser);
         googleSheetSync.syncRecord('TASK_HUB', resolved, activeUser.Email, 'ARCHIVE_COMPLETED');
         return resolved;

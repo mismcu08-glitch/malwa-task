@@ -25,6 +25,7 @@ import { googleSheetSync } from '../services/googleSheetSync';
 import { realtimeSync } from '../services/realtimeSync';
 import { pushNotificationService } from '../services/pushNotificationService';
 import { createNextRecurringInstance } from '../utils/recurringTaskManager';
+import { saveCloudTask, deleteCloudTask } from '../services/firebaseClient';
 
 interface TaskHubProps {
   tasks: TaskItem[];
@@ -139,6 +140,7 @@ export const TaskHub: React.FC<TaskHubProps> = ({
 
         realtimeSync.broadcastTaskMutation('SUBTASK_TOGGLE', updatedTask, activeUser);
         googleSheetSync.syncRecord('TASK_HUB', updatedTask, activeUser.Email, 'UPSERT_RECORD');
+        saveCloudTask(updatedTask);
 
         return updatedTask;
       }
@@ -182,6 +184,7 @@ export const TaskHub: React.FC<TaskHubProps> = ({
     const updated = tasks.map((t) => (t.Task_ID === targetTask.Task_ID ? completedTask : t));
     setTasks(updated);
 
+    saveCloudTask(completedTask);
     realtimeSync.broadcastTaskMutation('COMPLETE', completedTask, activeUser);
     googleSheetSync.syncRecord('TASK_HUB', completedTask, activeUser.Email, 'ARCHIVE_COMPLETED');
 
@@ -203,6 +206,7 @@ export const TaskHub: React.FC<TaskHubProps> = ({
     setRecentlyDeletedTask(taskToDelete);
     setTaskPendingDeletion(null);
 
+    deleteCloudTask(taskToDelete.Task_ID);
     realtimeSync.broadcastTaskMutation('DELETE', taskToDelete, activeUser);
     googleSheetSync.syncRecord('TASK_HUB', taskToDelete, activeUser.Email, 'DELETE_RECORD');
 
@@ -220,6 +224,7 @@ export const TaskHub: React.FC<TaskHubProps> = ({
     setTasks((prev) => [restored, ...prev]);
     setRecentlyDeletedTask(null);
 
+    saveCloudTask(restored);
     realtimeSync.broadcastTaskMutation('CREATE', restored, activeUser);
     googleSheetSync.syncRecord('TASK_HUB', restored, activeUser.Email, 'UPSERT_RECORD');
     setNotice(`Task ${restored.Task_ID} restored.`);

@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { googleSheetSync } from '../services/googleSheetSync';
 import { dataSyncBus } from '../services/dataSyncBus';
+import { saveCloudUser, deleteCloudUser } from '../services/firebaseClient';
 
 interface Module10AdminControlProps {
   users: User[];
@@ -172,6 +173,7 @@ export const Module10AdminControl: React.FC<Module10AdminControlProps> = ({
         localStorage.setItem('malwa_fms_users', JSON.stringify(updated));
       } catch {}
 
+      saveCloudUser(newUser);
       googleSheetSync.syncRecord('USER_RBAC', newUser, activeUser.Email, 'UPSERT_RECORD');
       dataSyncBus.broadcast('USER_CREATED', { newUser });
       setNotice(`New employee ${newUser.Full_Name} (${newUser.User_ID}) added.`);
@@ -195,6 +197,7 @@ export const Module10AdminControl: React.FC<Module10AdminControlProps> = ({
         localStorage.setItem('malwa_fms_users', JSON.stringify(updated));
       } catch {}
 
+      saveCloudUser(editedUser);
       googleSheetSync.syncRecord('USER_RBAC', editedUser, activeUser.Email, 'UPSERT_RECORD');
       dataSyncBus.broadcast('USER_UPDATED', { updatedUser: editedUser });
       setNotice(`User ${editedUser.Full_Name} permissions updated.`);
@@ -227,6 +230,8 @@ export const Module10AdminControl: React.FC<Module10AdminControlProps> = ({
     try {
       localStorage.setItem('malwa_fms_users', JSON.stringify(updatedUsers));
     } catch {}
+
+    deleteCloudUser(targetUser.User_ID);
 
     // Cascade tasks in Task Hub
     if (setTasks && tasks.length > 0) {

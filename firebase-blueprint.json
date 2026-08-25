@@ -1,0 +1,70 @@
+{
+  "entities": {
+    "Task": {
+      "title": "Task",
+      "description": "Factory operational task with SLA tracking and checklist",
+      "type": "object",
+      "properties": {
+        "TaskID": { "type": "string" },
+        "Title": { "type": "string" },
+        "Category": { "type": "string" },
+        "AssignedTo": { "type": "string" },
+        "AssignedToEmail": { "type": "string" },
+        "AssignedBy": { "type": "string" },
+        "AssignedByEmail": { "type": "string" },
+        "Priority": { "type": "string" },
+        "Status": { "type": "string" },
+        "DueDate": { "type": "string" },
+        "CreatedAt": { "type": "string" },
+        "SLADurationHours": { "type": "number" },
+        "SLAStatus": { "type": "string" },
+        "Description": { "type": "string" },
+        "lastSyncedAt": { "type": "string" }
+      },
+      "required": ["TaskID", "Title", "Status"]
+    },
+    "Routine": {
+      "title": "Routine",
+      "description": "Daily or shift-wise recurring checklist routine for plant equipment",
+      "type": "object",
+      "properties": {
+        "RoutineID": { "type": "string" },
+        "Title": { "type": "string" },
+        "Department": { "type": "string" },
+        "Frequency": { "type": "string" },
+        "Shift": { "type": "string" },
+        "AssignedTo": { "type": "string" },
+        "Status": { "type": "string" }
+      },
+      "required": ["RoutineID", "Title"]
+    },
+    "Employee": {
+      "title": "Employee",
+      "description": "Factory personnel profile",
+      "type": "object",
+      "properties": {
+        "UserID": { "type": "string" },
+        "Name": { "type": "string" },
+        "Email": { "type": "string" },
+        "Role": { "type": "string" },
+        "Department": { "type": "string" },
+        "Status": { "type": "string" }
+      },
+      "required": ["UserID", "Email", "Name"]
+    }
+  },
+  "firestore": {
+    "/malwa_tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Factory tasks collection"
+    },
+    "/malwa_routines/{routineId}": {
+      "schema": "Routine",
+      "description": "Plant routines collection"
+    },
+    "/malwa_employees/{employeeId}": {
+      "schema": "Employee",
+      "description": "Employees collection"
+    }
+  }
+}
