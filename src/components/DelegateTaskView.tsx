@@ -19,6 +19,7 @@ import { googleSheetSync } from '../services/googleSheetSync';
 import { realtimeSync } from '../services/realtimeSync';
 import { pushNotificationService } from '../services/pushNotificationService';
 import { saveCloudTask } from '../services/firebaseClient';
+import { canUserEditTask } from '../utils/rbac';
 
 interface DelegateTaskViewProps {
   tasks: TaskItem[];
@@ -149,6 +150,12 @@ export const DelegateTaskView: React.FC<DelegateTaskViewProps> = ({
       }));
 
     if (initialTaskToEdit) {
+      if (!canUserEditTask(activeUser, initialTaskToEdit)) {
+        setIsSubmitting(false);
+        alert('Security Restriction: Only the Assigner who delegated this task or an Admin has permission to modify its parameters.');
+        return;
+      }
+
       // Update existing task
       const updatedList = tasks.map((t) => {
         if (t.Task_ID === initialTaskToEdit.Task_ID) {

@@ -58,9 +58,8 @@ export const CollaborativeHeader: React.FC<CollaborativeHeaderProps> = ({
     return () => unsub();
   }, []);
 
-  const unreadCount = notifications.filter(
-    (n) => !n.read && (n.targetEmail === 'ALL' || n.targetEmail.toLowerCase() === activeUser.Email.toLowerCase())
-  ).length;
+  const userNotifications = pushNotificationService.filterNotificationsForUser(activeUser);
+  const unreadCount = userNotifications.filter((n) => !n.read).length;
 
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-2xs">
@@ -129,10 +128,10 @@ export const CollaborativeHeader: React.FC<CollaborativeHeaderProps> = ({
                     </div>
 
                     <div className="max-h-64 overflow-y-auto divide-y divide-slate-100">
-                      {notifications.length === 0 ? (
+                      {userNotifications.length === 0 ? (
                         <div className="p-6 text-center text-slate-400">No new notifications</div>
                       ) : (
-                        notifications.slice(0, 10).map((n) => (
+                        userNotifications.slice(0, 10).map((n) => (
                           <div
                             key={n.id}
                             className={`p-3 space-y-0.5 ${!n.read ? 'bg-indigo-50/40' : 'hover:bg-slate-50'}`}

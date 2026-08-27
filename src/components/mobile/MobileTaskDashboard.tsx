@@ -17,10 +17,11 @@ import {
   Filter,
   Check,
   Repeat,
+  CalendarDays,
   X
 } from 'lucide-react';
 import { UserAvatar } from './avatarUtils';
-import { isModuleAllowed, MODULE_IDS } from '../../utils/rbac';
+import { isModuleAllowed, MODULE_IDS, canUserUpdateTaskStatus } from '../../utils/rbac';
 import { pushNotificationService } from '../../services/pushNotificationService';
 import { realtimeSync } from '../../services/realtimeSync';
 import { googleSheetSync } from '../../services/googleSheetSync';
@@ -34,6 +35,7 @@ interface MobileTaskDashboardProps {
   onOpenTaskDetails: (task: TaskItem) => void;
   onNavigateToDelegate: (taskToEdit?: TaskItem) => void;
   onNavigateToDelayed: () => void;
+  onNavigateToForecast?: () => void;
 }
 
 // Circular SVG Progress Ring component for Today Tasks
@@ -85,6 +87,7 @@ export const MobileTaskDashboard: React.FC<MobileTaskDashboardProps> = ({
   onOpenTaskDetails,
   onNavigateToDelegate,
   onNavigateToDelayed,
+  onNavigateToForecast,
 }) => {
   const [filterMode, setFilterMode] = useState<'ALL' | 'MINE' | 'PENDING' | 'COMPLETED'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -95,6 +98,12 @@ export const MobileTaskDashboard: React.FC<MobileTaskDashboardProps> = ({
   const handleExecuteComplete = () => {
     if (!taskPendingCompletion || !setTasks) return;
     const targetTask = taskPendingCompletion;
+
+    if (!canUserUpdateTaskStatus(activeUser, targetTask)) {
+      setTaskPendingCompletion(null);
+      alert('Security Restriction: You do not have permission to mark this task complete.');
+      return;
+    }
 
     confetti({
       particleCount: 80,
@@ -274,6 +283,17 @@ export const MobileTaskDashboard: React.FC<MobileTaskDashboardProps> = ({
               Done ({completedCount})
             </button>
           )}
+
+          {onNavigateToForecast && isModuleAllowed(activeUser, MODULE_IDS.UPCOMING_FORECAST) && (
+            <button
+              type="button"
+              onClick={onNavigateToForecast}
+              className="px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition cursor-pointer min-h-[36px] bg-indigo-50 hover:bg-indigo-100 text-[#6C70FF] border border-indigo-200/80 flex items-center space-x-1"
+            >
+              <CalendarDays className="w-3.5 h-3.5" />
+              <span>Upcoming Forecast</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -404,7 +424,7 @@ export const MobileTaskDashboard: React.FC<MobileTaskDashboardProps> = ({
                   {/* Right: Circular Progress Ring & Done Button */}
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     <CircularProgressRing percentage={percent} size={44} strokeWidth={4} />
-                    {t.Status !== 'Completed' && (
+                    {t.Status !== 'Completed' && canUserUpdateTaskStatus(activeUser, t) && (
                       <button
                         type="button"
                         onClick={(e) => {

@@ -57,12 +57,22 @@ export const MobileInboxView: React.FC<MobileInboxViewProps> = ({
   const [activeThreadTask, setActiveThreadTask] = useState<TaskItem | null>(null);
   const [quickReplyText, setQuickReplyText] = useState('');
 
-  // Synthesize rich inbox conversations and team updates from real tasks & comments
+  // Synthesize rich inbox conversations and team updates strictly for tasks the user is involved in
   const messages: ActivityMessage[] = useMemo(() => {
     const list: ActivityMessage[] = [];
+    const isUserAdmin = activeUser.Role === 'Admin';
+    const myEmail = (activeUser.Email || '').toLowerCase();
 
-    // 1. Gather all tasks with comments
-    tasks.forEach((t, idx) => {
+    // Filter tasks to only those assigned to me, assigned by me, or if I am an Admin
+    const relevantTasks = tasks.filter((t) => {
+      if (isUserAdmin) return true;
+      const toEmail = (t.Assigned_To_Email || '').toLowerCase();
+      const byEmail = (t.Assigned_By_Email || '').toLowerCase();
+      return toEmail === myEmail || byEmail === myEmail;
+    });
+
+    // 1. Gather relevant tasks with comments
+    relevantTasks.forEach((t, idx) => {
       if (t.Comments && t.Comments.length > 0) {
         t.Comments.forEach((c) => {
           list.push({
@@ -102,7 +112,7 @@ export const MobileInboxView: React.FC<MobileInboxViewProps> = ({
     });
 
     return list;
-  }, [tasks]);
+  }, [tasks, activeUser]);
 
   const filteredMessages = useMemo(() => {
     if (!searchQuery.trim()) return messages;

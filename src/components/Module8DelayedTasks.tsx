@@ -17,6 +17,7 @@ import confetti from 'canvas-confetti';
 import { googleSheetSync } from '../services/googleSheetSync';
 import { realtimeSync } from '../services/realtimeSync';
 import { saveCloudTask } from '../services/firebaseClient';
+import { canUserUpdateTaskStatus } from '../utils/rbac';
 
 interface Module8DelayedTasksProps {
   tasks: TaskItem[];
@@ -53,6 +54,12 @@ export const Module8DelayedTasks: React.FC<Module8DelayedTasksProps> = ({
   };
 
   const handleResolveTask = (taskId: string) => {
+    const currentTask = tasks.find((t) => t.Task_ID === taskId);
+    if (!currentTask || !canUserUpdateTaskStatus(activeUser, currentTask)) {
+      alert('Security Restriction: Only the Task Assignee, Creator, or an Admin can resolve and archive this task.');
+      return;
+    }
+
     const updated = tasks.map((t) => {
       if (t.Task_ID === taskId) {
         const resolved: TaskItem = {
@@ -192,12 +199,18 @@ export const Module8DelayedTasks: React.FC<Module8DelayedTasksProps> = ({
                   <MessageSquare className="w-4 h-4" />
                   <span>Send WhatsApp Alert</span>
                 </a>
-                <button
-                  onClick={() => handleResolveTask(t.Task_ID)}
-                  className="bg-slate-900 hover:bg-slate-800 active:bg-black text-white font-semibold text-[13px] px-4 py-2.5 sm:py-2 rounded-lg transition cursor-pointer min-h-[44px] sm:min-h-0 flex items-center justify-center"
-                >
-                  Resolve & Archive
-                </button>
+                {canUserUpdateTaskStatus(activeUser, t) ? (
+                  <button
+                    onClick={() => handleResolveTask(t.Task_ID)}
+                    className="bg-slate-900 hover:bg-slate-800 active:bg-black text-white font-semibold text-[13px] px-4 py-2.5 sm:py-2 rounded-lg transition cursor-pointer min-h-[44px] sm:min-h-0 flex items-center justify-center"
+                  >
+                    Resolve & Archive
+                  </button>
+                ) : (
+                  <span className="text-[12px] font-medium text-slate-400 bg-slate-100 px-3 py-2 rounded-lg text-center">
+                    🔒 Assigned to {t.Assigned_To_Email.split('@')[0]}
+                  </span>
+                )}
               </div>
             </div>
           ))

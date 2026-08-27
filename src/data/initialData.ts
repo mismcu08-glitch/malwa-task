@@ -15,7 +15,7 @@ export const INITIAL_USERS: User[] = [
     Department: 'Executive Systems',
     Phone_Number: '+91 98260 11001',
     Status: 'Active',
-    Allowed_Modules: [1, 2, 3, 4, 5, 6],
+    Allowed_Modules: [1, 2, 3, 4, 5, 6, 7],
     Avatar_Color: 'bg-blue-600',
   },
 ];

@@ -30,9 +30,10 @@ export const SYSTEM_MODULES: SystemModule[] = [
   { id: 1, name: 'Task & Routine Hub', key: 'TASK_HUB', description: 'Assigned tasks, checklists & daily SOP execution' },
   { id: 2, name: 'Delegate Task', key: 'DELEGATE_TASK', description: 'Create, assign & dispatch operations to employees' },
   { id: 3, name: 'Delayed Tasks & MIS', key: 'DELAYED_TASKS', description: 'Overdue task tracker, bottleneck flags & escalations' },
-  { id: 4, name: 'Operational Analytics', key: 'ANALYTICS', description: 'Department KPIs, completion rate & operational metrics' },
-  { id: 5, name: 'Google Sheets DB Sync', key: 'SHEETS_SYNC', description: 'Live spreadsheet streaming & transaction audit logs' },
-  { id: 6, name: 'Admin & Granular RBAC', key: 'ADMIN', description: 'User permissions, role access & system configuration' },
+  { id: 4, name: 'Upcoming & Frequency Forecast', key: 'UPCOMING_FORECAST', description: 'Future task projections, recurrence horizon & date toggles' },
+  { id: 5, name: 'Operational Analytics', key: 'ANALYTICS', description: 'Department KPIs, completion rate & operational metrics' },
+  { id: 6, name: 'Google Sheets DB Sync', key: 'SHEETS_SYNC', description: 'Live spreadsheet streaming & transaction audit logs' },
+  { id: 7, name: 'Admin & Granular RBAC', key: 'ADMIN', description: 'User permissions, role access & system configuration' },
 ];
 
 export interface User {

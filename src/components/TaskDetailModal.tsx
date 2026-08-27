@@ -17,12 +17,18 @@ import {
   Smartphone,
   Share2,
   Check,
-  Repeat
+  Repeat,
+  Lock
 } from 'lucide-react';
 import { realtimeSync } from '../services/realtimeSync';
 import { googleSheetSync } from '../services/googleSheetSync';
 import { pushNotificationService } from '../services/pushNotificationService';
 import { computeNextDueDate } from '../utils/recurringTaskManager';
+import {
+  canUserDeleteTask,
+  canUserModifyChecklistStructure,
+  canUserUpdateTaskStatus,
+} from '../utils/rbac';
 
 interface TaskDetailModalProps {
   task: TaskItem | null;
@@ -48,6 +54,11 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   const [showCompleteConfirm, setShowCompleteConfirm] = useState<boolean>(false);
 
   if (!task) return null;
+
+  // RBAC Security Permissions for this specific task & user
+  const isAllowedToDelete = canUserDeleteTask(activeUser, task);
+  const isAllowedToModifyChecklist = canUserModifyChecklistStructure(activeUser, task);
+  const isAllowedToUpdateStatus = canUserUpdateTaskStatus(activeUser, task);
 
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,6 +103,10 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
 
   const handleAddSubtask = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAllowedToModifyChecklist) {
+      alert('Security Restriction: Only the Task Assigner (Creator) or an Administrator can add subtasks.');
+      return;
+    }
     if (!newSubtaskTitle.trim()) return;
 
     const newSubtask = {
@@ -117,6 +132,11 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   };
 
   const handleToggleSubtaskInModal = (subtaskId: string) => {
+    if (!isAllowedToUpdateStatus) {
+      alert('Security Restriction: Only the Assignee, Assigner, or Administrator can update task progress.');
+      return;
+    }
+
     const updatedSubtasks = task.Subtasks.map((st) =>
       st.id === subtaskId
         ? {
@@ -147,6 +167,11 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   };
 
   const handleConfirmComplete = () => {
+    if (!isAllowedToUpdateStatus) {
+      alert('Security Restriction: You do not have permission to mark this task as completed.');
+      return;
+    }
+
     const now = new Date().toLocaleString();
     const completedSubtasks = task.Subtasks.map((st) => ({
       ...st,
@@ -173,12 +198,18 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
     onUpdateTask(completedTask);
     realtimeSync.broadcastTaskMutation('COMPLETE', completedTask, activeUser);
     googleSheetSync.syncRecord('TASK_HUB', completedTask, activeUser.Email, 'ARCHIVE_COMPLETED');
+    pushNotificationService.notifyTaskStatusChanged(completedTask, activeUser, 'Completed');
     
     setShowCompleteConfirm(false);
     onClose();
   };
 
   const handleDeleteSubtask = (subtaskId: string) => {
+    if (!isAllowedToModifyChecklist) {
+      alert('Security Restriction: Only the Task Assigner (Creator) or an Administrator can delete checklist items.');
+      return;
+    }
+
     const updatedSubtasks = task.Subtasks.filter((st) => st.id !== subtaskId);
     const completedCount = updatedSubtasks.filter((st) => st.completed).length;
     const progress =
@@ -197,6 +228,10 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   };
 
   const handleConfirmDelete = () => {
+    if (!isAllowedToDelete) {
+      alert('Security Restriction: You do not have permission to delete this task.');
+      return;
+    }
     if (onDeleteTask) {
       onDeleteTask(task.Task_ID);
     }
@@ -314,12 +349,13 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                     key={st.id}
                     className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition gap-2"
                   >
-                    <label className="flex items-start space-x-2.5 flex-1 cursor-pointer select-none">
+                    <label className={`flex items-start space-x-2.5 flex-1 select-none ${isAllowedToUpdateStatus ? 'cursor-pointer' : 'cursor-not-allowed opacity-90'}`}>
                       <input
                         type="checkbox"
                         checked={st.completed}
+                        disabled={!isAllowedToUpdateStatus}
                         onChange={() => handleToggleSubtaskInModal(st.id)}
-                        className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer shrink-0"
+                        className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer disabled:cursor-not-allowed shrink-0"
                       />
                       <div className="text-xs">
                         <span className={`break-words ${st.completed ? 'line-through text-slate-400' : 'text-slate-800 font-medium'}`}>
@@ -332,19 +368,21 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                         )}
                       </div>
                     </label>
-                    <button
-                      onClick={() => handleDeleteSubtask(st.id)}
-                      className="text-slate-400 hover:text-rose-600 p-2 rounded-lg hover:bg-rose-50 min-w-[36px] min-h-[36px] flex items-center justify-center shrink-0 cursor-pointer"
-                      title="Remove checklist item"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {isAllowedToModifyChecklist && (
+                      <button
+                        onClick={() => handleDeleteSubtask(st.id)}
+                        className="text-slate-400 hover:text-rose-600 p-2 rounded-lg hover:bg-rose-50 min-w-[36px] min-h-[36px] flex items-center justify-center shrink-0 cursor-pointer"
+                        title="Remove checklist item"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
 
-              {/* Complete Task Action Card if not completed */}
-              {task.Status !== 'Completed' && (
+              {/* Complete Task Action Card if not completed and user is authorized */}
+              {task.Status !== 'Completed' && isAllowedToUpdateStatus && (
                 <div className={`p-3.5 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
                   task.Progress_Percentage === 100
                     ? 'bg-emerald-50 border-emerald-300 text-emerald-950 shadow-xs animate-pulse'
@@ -371,23 +409,31 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                   </button>
                 </div>
               )}
-              {/* Add New Subtask Form */}
-              <form onSubmit={handleAddSubtask} className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-100">
-                <input
-                  type="text"
-                  value={newSubtaskTitle}
-                  onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                  placeholder="Add another checklist item..."
-                  className="flex-1 text-xs p-3 sm:p-2.5 border border-slate-300 rounded-lg bg-slate-50 focus:bg-white outline-none min-h-[44px] sm:min-h-0"
-                />
-                <button
-                  type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs px-4 py-3 sm:py-2.5 rounded-lg transition flex items-center justify-center space-x-1 cursor-pointer min-h-[44px]"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Item</span>
-                </button>
-              </form>
+
+              {/* Add New Subtask Form - Only for Creator / Admin */}
+              {isAllowedToModifyChecklist ? (
+                <form onSubmit={handleAddSubtask} className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-100">
+                  <input
+                    type="text"
+                    value={newSubtaskTitle}
+                    onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                    placeholder="Add another checklist item..."
+                    className="flex-1 text-xs p-3 sm:p-2.5 border border-slate-300 rounded-lg bg-slate-50 focus:bg-white outline-none min-h-[44px] sm:min-h-0"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs px-4 py-3 sm:py-2.5 rounded-lg transition flex items-center justify-center space-x-1 cursor-pointer min-h-[44px]"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add Item</span>
+                  </button>
+                </form>
+              ) : (
+                <div className="pt-2 text-[11px] text-slate-400 flex items-center space-x-1.5 border-t border-slate-100">
+                  <Lock className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Checklist structure managed by Task Assigner ({task.Assigned_By_Email}) and Admin.</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -527,7 +573,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
         ) : (
           /* Modal Footer */
           <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2 shrink-0">
-            {onDeleteTask ? (
+            {onDeleteTask && isAllowedToDelete ? (
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
@@ -545,7 +591,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
               >
                 Close
               </button>
-              {task.Status !== 'Completed' && (
+              {task.Status !== 'Completed' && isAllowedToUpdateStatus && (
                 <button
                   type="button"
                   onClick={() => setShowCompleteConfirm(true)}

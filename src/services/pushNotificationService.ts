@@ -141,13 +141,43 @@ class PushNotificationService {
     }
   }
 
-  public notifyTaskAssigned(task: TaskItem, assignedByName: string) {
+  public notifyTaskAssigned(task: TaskItem, assignedBy: User | string) {
+    const assignerName = typeof assignedBy === 'string' ? assignedBy : (assignedBy?.Full_Name || assignedBy?.Email || 'Manager');
     this.triggerPushNotification(
       `New Task Assigned: ${task.Task_ID}`,
-      `${assignedByName} assigned "${task.Task_Name}" (${task.Department}) to you. Due: ${task.Due_Date}.`,
+      `${assignerName} assigned "${task.Task_Name}" (${task.Department}) to you. Due: ${task.Due_Date}.`,
       'ASSIGNMENT',
       task.Assigned_To_Email,
       task.Task_ID
+    );
+  }
+
+  public notifyTaskStatusChanged(task: TaskItem, updater: User | string, newStatus: string) {
+    const updaterName = typeof updater === 'string' ? updater : (updater?.Full_Name || updater?.Email || 'Team Member');
+    // Notify the assigner/creator about status update
+    if (task.Assigned_By_Email && task.Assigned_By_Email.toLowerCase() !== task.Assigned_To_Email.toLowerCase()) {
+      this.triggerPushNotification(
+        `Task Status Updated: ${task.Task_ID}`,
+        `${updaterName} marked "${task.Task_Name}" as ${newStatus}.`,
+        'UPDATE',
+        task.Assigned_By_Email,
+        task.Task_ID
+      );
+    }
+  }
+
+  /**
+   * Returns notifications strictly filtered for the given user.
+   * Standard users ONLY see notifications targeted directly to their email or global announcements ('ALL').
+   */
+  public filterNotificationsForUser(user: User | null | undefined): NotificationItem[] {
+    if (!user) return [];
+    const email = (user.Email || '').trim().toLowerCase();
+    if (user.Role === 'Admin') {
+      return this.notifications;
+    }
+    return this.notifications.filter(
+      (n) => (n.targetEmail || '').trim().toLowerCase() === email || n.targetEmail === 'ALL'
     );
   }
 
@@ -160,8 +190,15 @@ class PushNotificationService {
     this.notifyListeners();
   }
 
-  public clearAll() {
-    this.notifications = [];
+  public clearAll(userEmail?: string) {
+    if (!userEmail) {
+      this.notifications = [];
+    } else {
+      const email = userEmail.toLowerCase();
+      this.notifications = this.notifications.filter(
+        (n) => n.targetEmail.toLowerCase() !== email && n.targetEmail !== 'ALL'
+      );
+    }
     this.notifyListeners();
   }
 

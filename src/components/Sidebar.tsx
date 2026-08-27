@@ -5,6 +5,7 @@ import {
   CheckSquare,
   PlusCircle,
   ClockAlert,
+  CalendarDays,
   BarChart3,
   FileSpreadsheet,
   Sliders,
@@ -15,7 +16,7 @@ import { UserAvatar } from './mobile/avatarUtils';
 import { isModuleAllowed, MODULE_IDS } from '../utils/rbac';
 import { MobileTab } from './mobile/MobileBottomNav';
 
-export type NavigationTab = 'TASK_HUB' | 'DELEGATE_TASK' | 'DELAYED_TASKS' | 'ADMIN';
+export type NavigationTab = 'TASK_HUB' | 'DELEGATE_TASK' | 'DELAYED_TASKS' | 'UPCOMING_FORECAST' | 'ADMIN';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -162,6 +163,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {overdueCount}
                   </span>
                 )}
+              </button>
+            )}
+
+            {isModuleAllowed(activeUser, MODULE_IDS.UPCOMING_FORECAST) && (
+              <button
+                onClick={() => handleNavClick('UPCOMING_FORECAST')}
+                className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  currentTab === 'UPCOMING_FORECAST'
+                    ? 'bg-[#6C70FF] text-white shadow-sm'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <CalendarDays className={`w-4 h-4 ${currentTab === 'UPCOMING_FORECAST' ? 'text-white' : 'text-[#6C70FF]'}`} />
+                <span>Upcoming & Frequency Forecast</span>
               </button>
             )}
 

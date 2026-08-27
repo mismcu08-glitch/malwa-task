@@ -22,6 +22,7 @@ import {
 import { TaskHub } from './components/TaskHub';
 import { DelegateTaskView } from './components/DelegateTaskView';
 import { Module8DelayedTasks } from './components/Module8DelayedTasks';
+import { UpcomingFrequencyForecast } from './components/UpcomingFrequencyForecast';
 import { Module10AdminControl } from './components/Module10AdminControl';
 import { GoogleSheetsSyncModal } from './components/GoogleSheetsSyncModal';
 import { AnalyticsDashboardModal } from './components/AnalyticsDashboardModal';
@@ -519,6 +520,7 @@ export default function App() {
                     setMobileActiveTab('DELEGATE');
                   }}
                   onNavigateToDelayed={() => setMobileActiveTab('TASKS')}
+                  onNavigateToForecast={() => setMobileActiveTab('FORECAST')}
                 />
               );
             })()
@@ -752,6 +754,68 @@ export default function App() {
             })()
           )}
 
+          {mobileActiveTab === 'FORECAST' && (
+            (() => {
+              const isAllowed = isModuleAllowed(activeUser, MODULE_IDS.UPCOMING_FORECAST);
+              if (!isAllowed) {
+                return (
+                  <div className="bg-white min-h-screen pb-28 pt-6 px-5 space-y-5">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                      <button
+                        type="button"
+                        onClick={() => setMobileActiveTab('HOME')}
+                        className="text-xs font-bold text-[#6C70FF] flex items-center space-x-1"
+                      >
+                        <span>← Back to Dashboard</span>
+                      </button>
+                    </div>
+                    <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 text-center space-y-4 shadow-2xs mt-4">
+                      <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200">
+                        <Lock className="w-7 h-7" />
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="text-base font-bold text-slate-900">Forecast Access Restricted</h3>
+                        <p className="text-xs text-slate-500">
+                          Your account (<strong>{activeUser.Full_Name}</strong>) does not have access to Module 4 (Upcoming & Frequency Forecast).
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setMobileActiveTab('HOME')}
+                        className="px-4 py-2 bg-[#6C70FF] text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer"
+                      >
+                        Return to Home
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="bg-white min-h-screen pb-28 pt-4 px-4 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <button
+                      type="button"
+                      onClick={() => setMobileActiveTab('HOME')}
+                      className="text-xs font-bold text-[#6C70FF] flex items-center space-x-1"
+                    >
+                      <span>← Back to Dashboard</span>
+                    </button>
+                    <h3 className="text-sm font-bold text-slate-900">Upcoming & Frequency Forecast</h3>
+                  </div>
+                  <UpcomingFrequencyForecast
+                    tasks={tasks}
+                    setTasks={setTasks}
+                    users={users}
+                    activeUser={activeUser}
+                    onOpenTaskDetails={(task) => setSelectedTaskForDetails(task)}
+                    onNavigateToDelegate={handleNavigateToDelegate}
+                  />
+                </div>
+              );
+            })()
+          )}
+
           {mobileActiveTab === 'PROFILE' && (
             <MobileProfileView
               activeUser={activeUser}
@@ -771,6 +835,11 @@ export default function App() {
               onNavigateToDelayed={() => {
                 if (isModuleAllowed(activeUser, MODULE_IDS.DELAYED_TASKS)) {
                   setMobileActiveTab('TASKS');
+                }
+              }}
+              onNavigateToForecast={() => {
+                if (isModuleAllowed(activeUser, MODULE_IDS.UPCOMING_FORECAST)) {
+                  setMobileActiveTab('FORECAST');
                 }
               }}
               onNavigateToAdmin={() => {
@@ -834,6 +903,7 @@ export default function App() {
               TASK_HUB: MODULE_IDS.TASK_HUB,
               DELEGATE_TASK: MODULE_IDS.DELEGATE_TASK,
               DELAYED_TASKS: MODULE_IDS.DELAYED_TASKS,
+              UPCOMING_FORECAST: MODULE_IDS.UPCOMING_FORECAST,
               ADMIN: MODULE_IDS.ADMIN,
             };
 
@@ -903,6 +973,17 @@ export default function App() {
                     tasks={tasks}
                     setTasks={setTasks}
                     activeUser={activeUser}
+                  />
+                )}
+
+                {currentTab === 'UPCOMING_FORECAST' && (
+                  <UpcomingFrequencyForecast
+                    tasks={tasks}
+                    setTasks={setTasks}
+                    users={users}
+                    activeUser={activeUser}
+                    onOpenTaskDetails={(task) => setSelectedTaskForDetails(task)}
+                    onNavigateToDelegate={handleNavigateToDelegate}
                   />
                 )}
 

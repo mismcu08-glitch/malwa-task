@@ -17,7 +17,8 @@ import {
   Lock,
   User as UserIcon,
   Building2,
-  CheckCircle2
+  CheckCircle2,
+  CalendarDays
 } from 'lucide-react';
 import { UserAvatar } from './avatarUtils';
 import { isModuleAllowed, MODULE_IDS, getAllowedModuleCount } from '../../utils/rbac';
@@ -30,6 +31,7 @@ interface MobileProfileViewProps {
   onOpenSheetsModal: () => void;
   onOpenAnalytics: () => void;
   onNavigateToDelayed: () => void;
+  onNavigateToForecast?: () => void;
   onNavigateToAdmin: () => void;
   onSwitchUser?: (email: string) => void;
   onUpdateUser?: (updatedUser: User) => void;
@@ -43,6 +45,7 @@ export const MobileProfileView: React.FC<MobileProfileViewProps> = ({
   onOpenSheetsModal,
   onOpenAnalytics,
   onNavigateToDelayed,
+  onNavigateToForecast,
   onNavigateToAdmin,
   onSwitchUser,
   onUpdateUser,
@@ -59,6 +62,7 @@ export const MobileProfileView: React.FC<MobileProfileViewProps> = ({
   const isSheetsAllowed = isModuleAllowed(activeUser, MODULE_IDS.SHEETS_SYNC);
   const isAnalyticsAllowed = isModuleAllowed(activeUser, MODULE_IDS.ANALYTICS);
   const isDelayedAllowed = isModuleAllowed(activeUser, MODULE_IDS.DELAYED_TASKS);
+  const isForecastAllowed = isModuleAllowed(activeUser, MODULE_IDS.UPCOMING_FORECAST);
   const isAdminAllowed = isModuleAllowed(activeUser, MODULE_IDS.ADMIN);
 
   const allowedCount = getAllowedModuleCount(activeUser);
@@ -233,6 +237,28 @@ export const MobileProfileView: React.FC<MobileProfileViewProps> = ({
                   <span>Delayed Tasks & Escalations</span>
                 </div>
                 <p className="text-[11px] text-slate-400 font-medium">Module 3 • Overdue Tracker & Alerts</p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition" />
+          </button>
+        )}
+
+        {/* Option 3.5: Upcoming Tasks & Frequency Forecast (Module 4) */}
+        {isForecastAllowed && onNavigateToForecast && (
+          <button
+            type="button"
+            onClick={onNavigateToForecast}
+            className="w-full py-3.5 flex items-center justify-between group -mx-2 px-2 rounded-xl transition text-left hover:bg-slate-50/70 cursor-pointer"
+          >
+            <div className="flex items-center space-x-3.5">
+              <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-2xs shrink-0 bg-indigo-50 text-[#6C70FF]">
+                <CalendarDays className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                  <span>Upcoming & Frequency Forecast</span>
+                </div>
+                <p className="text-[11px] text-slate-400 font-medium">Module 4 • Predictive Scheduling & Date Toggles</p>
               </div>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition" />

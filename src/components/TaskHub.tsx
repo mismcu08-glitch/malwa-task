@@ -26,6 +26,7 @@ import { realtimeSync } from '../services/realtimeSync';
 import { pushNotificationService } from '../services/pushNotificationService';
 import { createNextRecurringInstance } from '../utils/recurringTaskManager';
 import { saveCloudTask, deleteCloudTask } from '../services/firebaseClient';
+import { canUserDeleteTask, canUserEditTask, canUserUpdateTaskStatus } from '../utils/rbac';
 
 interface TaskHubProps {
   tasks: TaskItem[];
@@ -107,6 +108,12 @@ export const TaskHub: React.FC<TaskHubProps> = ({
   };
 
   const handleToggleSubtask = (taskId: string, subtaskId: string) => {
+    const currentTask = tasks.find((t) => t.Task_ID === taskId);
+    if (!currentTask || !canUserUpdateTaskStatus(activeUser, currentTask)) {
+      alert('Security Restriction: You can only check off checklist items on tasks assigned to you or managed by your account.');
+      return;
+    }
+
     const updated = tasks.map((t) => {
       if (t.Task_ID === taskId) {
         const newSubtasks = t.Subtasks.map((st) =>
@@ -151,12 +158,21 @@ export const TaskHub: React.FC<TaskHubProps> = ({
   };
 
   const handleRequestComplete = (task: TaskItem) => {
+    if (!canUserUpdateTaskStatus(activeUser, task)) {
+      alert('Security Restriction: Only the Task Assignee, Creator, or an Admin can mark this task complete.');
+      return;
+    }
     setTaskPendingCompletion(task);
   };
 
   const handleExecuteComplete = () => {
     if (!taskPendingCompletion) return;
     const targetTask = taskPendingCompletion;
+
+    if (!canUserUpdateTaskStatus(activeUser, targetTask)) {
+      setTaskPendingCompletion(null);
+      return;
+    }
 
     confetti({
       particleCount: 80,
@@ -194,12 +210,22 @@ export const TaskHub: React.FC<TaskHubProps> = ({
   };
 
   const handleRequestDelete = (task: TaskItem) => {
+    if (!canUserDeleteTask(activeUser, task)) {
+      alert('Security Restriction: Only the Assigner who delegated this task or an Admin has permission to delete it.');
+      return;
+    }
     setTaskPendingDeletion(task);
   };
 
   const handleExecuteDelete = () => {
     if (!taskPendingDeletion) return;
     const taskToDelete = taskPendingDeletion;
+
+    if (!canUserDeleteTask(activeUser, taskToDelete)) {
+      setTaskPendingDeletion(null);
+      return;
+    }
+
     const remaining = tasks.filter((t) => t.Task_ID !== taskToDelete.Task_ID);
     
     setTasks(remaining);
@@ -521,26 +547,36 @@ export const TaskHub: React.FC<TaskHubProps> = ({
                           <span>{t.Progress_Percentage}%</span>
                         </div>
                         <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                          {t.Subtasks.map((st) => (
-                            <label
-                              key={st.id}
-                              className="flex items-start space-x-2 text-xs text-slate-700 cursor-pointer select-none group/st hover:text-slate-900 transition"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={st.completed}
-                                onChange={() => handleToggleSubtask(t.Task_ID, st.id)}
-                                className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 cursor-pointer shrink-0"
-                              />
-                              <span
-                                className={`break-words ${
-                                  st.completed ? 'line-through text-slate-400' : 'text-slate-700'
+                          {t.Subtasks.map((st) => {
+                            const canToggle = canUserUpdateTaskStatus(activeUser, t);
+                            return (
+                              <label
+                                key={st.id}
+                                className={`flex items-start space-x-2 text-xs select-none transition ${
+                                  canToggle
+                                    ? 'cursor-pointer group/st text-slate-700 hover:text-slate-900'
+                                    : 'cursor-not-allowed text-slate-500 opacity-80'
                                 }`}
                               >
-                                {st.title}
-                              </span>
-                            </label>
-                          ))}
+                                <input
+                                  type="checkbox"
+                                  checked={st.completed}
+                                  disabled={!canToggle}
+                                  onChange={() => handleToggleSubtask(t.Task_ID, st.id)}
+                                  className={`mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 shrink-0 ${
+                                    canToggle ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+                                  }`}
+                                />
+                                <span
+                                  className={`break-words ${
+                                    st.completed ? 'line-through text-slate-400' : 'text-slate-700'
+                                  }`}
+                                >
+                                  {st.title}
+                                </span>
+                              </label>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -568,7 +604,7 @@ export const TaskHub: React.FC<TaskHubProps> = ({
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        {onNavigateToDelegate && (
+                        {onNavigateToDelegate && canUserEditTask(activeUser, t) && (
                           <button
                             onClick={() => onNavigateToDelegate(t)}
                             title="Edit Task"
@@ -586,23 +622,31 @@ export const TaskHub: React.FC<TaskHubProps> = ({
                         >
                           <MessageSquare className="w-4 h-4" />
                         </a>
-                        <button
-                          onClick={() => handleRequestDelete(t)}
-                          title="Delete Task"
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-50 rounded-lg transition cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {canUserDeleteTask(activeUser, t) && (
+                          <button
+                            onClick={() => handleRequestDelete(t)}
+                            title="Delete Task"
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-50 rounded-lg transition cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
 
                       {!isCompleted ? (
-                        <button
-                          onClick={() => handleRequestComplete(t)}
-                          className="text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition flex items-center space-x-1 cursor-pointer"
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Complete</span>
-                        </button>
+                        canUserUpdateTaskStatus(activeUser, t) ? (
+                          <button
+                            onClick={() => handleRequestComplete(t)}
+                            className="text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition flex items-center space-x-1 cursor-pointer"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Complete</span>
+                          </button>
+                        ) : (
+                          <span className="text-[11px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
+                            {t.Status === 'In_Progress' ? 'In Progress' : 'Pending'}
+                          </span>
+                        )
                       ) : (
                         <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
                           Done
@@ -686,13 +730,15 @@ export const TaskHub: React.FC<TaskHubProps> = ({
                             >
                               <Eye className="w-3.5 h-3.5" />
                             </button>
-                            <button
-                              onClick={() => handleRequestDelete(t)}
-                              className="p-1 text-slate-400 hover:text-rose-600 rounded transition cursor-pointer"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            {canUserDeleteTask(activeUser, t) && (
+                              <button
+                                onClick={() => handleRequestDelete(t)}
+                                className="p-1 text-slate-400 hover:text-rose-600 rounded transition cursor-pointer"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
